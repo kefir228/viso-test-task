@@ -1,33 +1,48 @@
-import React from "react";
+'use client'
+
+import React, { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import axios from "axios";
 import { Meal, MealsResponse } from "../../../types/type";
-
-interface RecipePageProps {
-  params: { id: string };
-}
 
 async function getRecipe(id: string): Promise<Meal | null> {
   const response = await axios.get<MealsResponse>(
     `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${id}`
-  )
+  );
   return response.data.meals ? response.data.meals[0] : null;
 }
 
 const getIngredients = (recipe: Meal) => {
-    const ingredients = [];
-    for (let i = 1; i <= 20; i++) {
-      const ingredient = recipe[`strIngredient${i}`]
-      const measure = recipe[`strMeasure${i}`];
-      if (ingredient) {
-        ingredients.push(`${ingredient} (${measure || "не вказано"})`);
-      }
+  const ingredients = [];
+  for (let i = 1; i <= 20; i++) {
+    const ingredient = recipe[`strIngredient${i}`];
+    const measure = recipe[`strMeasure${i}`];
+    if (ingredient) {
+      ingredients.push(`${ingredient} (${measure || "не вказано"})`);
     }
-    return ingredients
   }
+  return ingredients;
+};
 
-export default async function RecipePage({ params }: RecipePageProps) {
-  const { id } = await params
-  const recipe = await getRecipe(id);
+export default function RecipePage() {
+  const params = useParams()
+  const id = params?.id as string
+
+  const [recipe, setRecipe] = useState<Meal | null>(null);
+  const [ingredients, setIngredients] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (id) {
+      const fetchRecipe = async () => {
+        const fetchedRecipe = await getRecipe(id);
+        if (fetchedRecipe) {
+          setRecipe(fetchedRecipe);
+          setIngredients(getIngredients(fetchedRecipe));
+        }
+      };
+      fetchRecipe();
+    }
+  }, [id])
 
   if (!recipe) {
     return (
@@ -36,8 +51,6 @@ export default async function RecipePage({ params }: RecipePageProps) {
       </p>
     );
   }
-
-  const ingredients = getIngredients(recipe);
 
   return (
     <div className="container mx-auto px-4 py-8">
